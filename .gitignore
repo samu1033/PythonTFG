@@ -20,3 +20,16 @@ lightning_logs/
 # OS
 .DS_Store
 Thumbs.db
+
+# Claude Code
+.claude/
+
+# MLflow
+mlruns/
+mlflow.db
+
+# Modelos entrenados
+*.pth
+
+# Predicciones generadas
+predictions.csv

@@ -1,0 +1,4 @@
+anomalib
+ipykernel
+ipympl
+mlflow
