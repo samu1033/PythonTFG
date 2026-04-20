@@ -6,8 +6,10 @@ from torchvision.transforms.v2 import Transform
 from torchvision.tv_tensors import Image as TVImage
 
 from anomalib.data.dataclasses.torch import ImageItem
+from anomalib.data.datamodules.base.image import AnomalibDataModule
 from anomalib.data.datasets.base import AnomalibDataset
 from anomalib.data.utils import LabelName, read_image
+from anomalib.data.utils.split import TestSplitMode, ValSplitMode
 
 
 class CustomDataset(AnomalibDataset):
@@ -51,6 +53,33 @@ class CustomDataset(AnomalibDataset):
         test_loader  = DataLoader(test_ds,  batch_size=batch_size, shuffle=False, num_workers=0, collate_fn=test_ds.collate_fn)
         val_loader   = DataLoader(test_ds,  batch_size=batch_size, shuffle=False, num_workers=0, collate_fn=test_ds.collate_fn)
         return train_loader, test_loader, val_loader
+
+
+class CustomDataModule(AnomalibDataModule):
+    """AnomalibDataModule for the custom robot dataset."""
+
+    def __init__(
+        self,
+        root: str | Path = "./datasets/robotV2",
+        train_batch_size: int = 1,
+        eval_batch_size: int = 32,
+        num_workers: int = 0,
+    ):
+        self.root = root
+        super().__init__(
+            train_batch_size=train_batch_size,
+            eval_batch_size=eval_batch_size,
+            num_workers=num_workers,
+            val_split_mode=ValSplitMode.SAME_AS_TEST,
+            val_split_ratio=0.5,
+            test_split_mode=TestSplitMode.FROM_DIR,
+            test_split_ratio=0.2,
+            seed=0,
+        )
+
+    def _setup(self, _stage: str | None = None) -> None:
+        self.train_data = CustomDataset(root=self.root, split="train")
+        self.test_data  = CustomDataset(root=self.root, split="test")
 
 
 class SingleImageDataset(Dataset):
