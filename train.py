@@ -3,25 +3,21 @@ import mlflow
 import mlflow.pytorch
 
 from anomalib.engine import Engine
-from anomalib.models import Fre
+from anomalib.models import Fre, Padim, Fastflow, EfficientAd
 from anomalib.pre_processing import PreProcessor
 from torchvision.transforms.v2 import Resize
 from anomalib.metrics import AUROC, F1Score
 from anomalib.metrics.evaluator import Evaluator
 from anomalib.loggers import AnomalibMLFlowLogger
 
-from dataset import CustomDataModule
+from dataset import kittingRobotDatamodule
 
 os.environ["MLFLOW_ENABLE_SYSTEM_METRICS_LOGGING"] = "true"
 mlflow.pytorch.autolog(log_models=True, log_every_n_epoch=1, silent=True)
 
 
 def main() -> None:
-    datamodule = CustomDataModule(
-        root="./datasets/robotV2",
-        train_batch_size=32,
-        eval_batch_size=32,
-    )
+    datamodule = kittingRobotDatamodule(root="./datasets/kittingRobot", train_batch_size=32, eval_batch_size=32)
 
     evaluator = Evaluator(
         val_metrics=[
@@ -35,17 +31,16 @@ def main() -> None:
 
     mlflow_logger = AnomalibMLFlowLogger(
         experiment_name="Anomaly Detection",
-        run_name="EfficientAD",
+        run_name="Padim Real robot",
         log_model="all",
         save_dir="./mlruns",
     )
 
-    model = Fre(
+    model = Padim(
         backbone="resnet18",
-        input_dim=16384,
-        pre_processor=PreProcessor(transform=Resize((256, 256))),
-        evaluator=evaluator,
+        n_features= 100
     )
+    
 
     engine = Engine(
         accelerator="gpu",

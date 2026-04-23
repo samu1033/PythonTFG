@@ -2,45 +2,40 @@ import cv2
 import os
 from pathlib import Path
 
-def extract_frames_from_video(video_path, output_dir, frame_prefix="frame"):
-    """
-    Extract all frames from a video file and save them as individual images.
-    
-    Args:
-        video_path (str): Path to the input video file
-        output_dir (str): Directory where frames will be saved
-        frame_prefix (str): Prefix for saved frame filenames (default: "frame")
-    """
-    # Create output directory if it doesn't exist
+def extract_frames_from_video(video_path, output_dir, frame_prefix="frame", target_fps=None):
     Path(output_dir).mkdir(parents=True, exist_ok=True)
-    
-    # Open the video
+
     cap = cv2.VideoCapture(video_path)
-    
+
     if not cap.isOpened():
         print(f"Error: Cannot open video file {video_path}")
         return
-    
-    frame_count = 0
-    
+
+    source_fps = cap.get(cv2.CAP_PROP_FPS)
+    step = round(source_fps / target_fps) if target_fps else 1
+    print(f"Source FPS: {source_fps:.2f} | Target FPS: {target_fps or source_fps} | Keeping 1 of every {step} frames")
+
+    frame_index = 0
+    saved_count = 0
+
     while True:
         ret, frame = cap.read()
-        
+
         if not ret:
             break
-        
-        # Save frame as image file
-        frame_filename = os.path.join(output_dir, f"{frame_prefix}_{frame_count:06d}.png")
-        cv2.imwrite(frame_filename, frame)
-        frame_count += 1
-        
-        print(f"Extracted frame {frame_count}")
-    
+
+        if frame_index % step == 0:
+            frame_filename = os.path.join(output_dir, f"{frame_prefix}_{saved_count:06d}.png")
+            cv2.imwrite(frame_filename, frame)
+            saved_count += 1
+
+        frame_index += 1
+
     cap.release()
-    print(f"Total frames extracted: {frame_count}")
+    print(f"Total frames saved: {saved_count}")
 
 
-video_file = r"C:\Users\samuc\Videos\RobotStudio 3-15_2.mp4"
-output_folder = r"C:\Users\samuc\Desktop\TFG\PruebasPython\datasets\robotV2\test\anomaly"
-    
-extract_frames_from_video(video_file, output_folder)
+video_file = r"C:\Users\samuc\Videos\RobotStudio 4-22_1.mp4"
+output_folder = r"C:\Users\samuc\Desktop\TFG\PythonTFG\datasets\robotV3\test\anomaly"
+
+extract_frames_from_video(video_file, output_folder, target_fps=10)
