@@ -1,7 +1,7 @@
 import cv2
 from pathlib import Path
 
-def frames_to_video(frames_dir, output_path="output.mp4", fps=30, extension="*.png"):
+def frames_to_video(frames_dir, output_path="./results/videos/kittingRobot.mp4", fps=15, extension="*.png"):
     frames = sorted(Path(frames_dir).glob(extension))
     
     if not frames:
@@ -28,7 +28,7 @@ def frames_to_video(frames_dir, output_path="output.mp4", fps=30, extension="*.p
 
 # Uso
 frames_to_video(
-    frames_dir="./results/Padim/CustomDataModule/v7/images/anomaly",
-    output_path="./results/output.mp4",
-    fps=30,
+    frames_dir="./results/Padim/kittingRobotDatamodule/v0/images/rgb",
+    output_path="./results/videos/kittingRobot.mp4",
+    fps=15,
 )

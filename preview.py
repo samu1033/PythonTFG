@@ -1,4 +1,4 @@
-import pyrealsense2 as rs
+import pyrealsense2 as rs #type: ignore
 import numpy as np
 import cv2
 
@@ -18,7 +18,7 @@ try:
         depth_frame = frames.get_depth_frame()
         if not color_frame or not depth_frame:
             continue
-
+            
         color_img = np.asanyarray(color_frame.get_data())
 
         depth_raw = np.asanyarray(depth_frame.get_data())  # uint16, valores en mm
