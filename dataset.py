@@ -30,13 +30,13 @@ class CustomDataset(AnomalibDataset):
         samples = []
 
         if self.split == "train":
-            for p in (self.root / "train/good/rgb").glob("*.png"):
+            for p in (self.root / "train/good").glob("*.png"):
                 samples.append({"image_path": str(p), "split": "train", "label_index": LabelName.NORMAL, "mask_path": None})
 
         elif self.split == "test":
-            for p in (self.root / "test/anomaly/rgb").glob("*.png"):
+            for p in (self.root / "test/anomaly").glob("*.png"):
                 samples.append({"image_path": str(p), "split": "test", "label_index": LabelName.ABNORMAL, "mask_path": None})
-            for p in (self.root / "test/good/rgb").glob("*.png"):
+            for p in (self.root / "test/good").glob("*.png"):
                 samples.append({"image_path": str(p), "split": "test", "label_index": LabelName.NORMAL, "mask_path": None})
 
         df = pd.DataFrame(samples)
@@ -55,17 +55,17 @@ class CustomDataset(AnomalibDataset):
         return train_loader, test_loader, val_loader
 
 
-class kittingRobotDatamodule(AnomalibDataModule):
+class robotV3Datamodule(AnomalibDataModule):
     """AnomalibDataModule for the custom robot dataset."""
 
     def __init__(
         self,
-        root: str | Path = "./datasets/kittingRobot",
+        root: str | Path = "./datasets/robotV3",
         train_batch_size: int = 1,
         eval_batch_size: int = 32,
         num_workers: int = 0,
     ):
-        self.root = root
+        self.root = root    
         super().__init__(
             train_batch_size=train_batch_size,
             eval_batch_size=eval_batch_size,
