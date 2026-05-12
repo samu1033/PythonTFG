@@ -12,7 +12,7 @@ from anomalib.data.utils import LabelName, read_image
 from anomalib.data.utils.split import TestSplitMode, ValSplitMode
 
 
-class CustomDataset(AnomalibDataset):
+class ImageDataset(AnomalibDataset):
     def __init__(
         self,
         root: str | Path,
@@ -42,30 +42,20 @@ class CustomDataset(AnomalibDataset):
         df = pd.DataFrame(samples)
         df.attrs["task"] = self.task_type
         return df
-
-    @staticmethod
-    def get_dataloaders(
-        train_ds: "CustomDataset",
-        test_ds: "CustomDataset",
-        batch_size: int = 32,
-    ) -> tuple[DataLoader, DataLoader, DataLoader]:
-        train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True,  num_workers=0, collate_fn=train_ds.collate_fn)
-        test_loader  = DataLoader(test_ds,  batch_size=batch_size, shuffle=False, num_workers=0, collate_fn=test_ds.collate_fn)
-        val_loader   = DataLoader(test_ds,  batch_size=batch_size, shuffle=False, num_workers=0, collate_fn=test_ds.collate_fn)
-        return train_loader, test_loader, val_loader
-
-
-class robotV3Datamodule(AnomalibDataModule):
+    
+class Datamodule(AnomalibDataModule):
     """AnomalibDataModule for the custom robot dataset."""
 
     def __init__(
         self,
-        root: str | Path = "./datasets/robotV3",
+        root: str | Path = "./datasets/grippy",
         train_batch_size: int = 1,
         eval_batch_size: int = 32,
         num_workers: int = 0,
+        name: str = "Datamodule",
     ):
-        self.root = root    
+        self.root = root
+        self._name = name
         super().__init__(
             train_batch_size=train_batch_size,
             eval_batch_size=eval_batch_size,
@@ -77,9 +67,14 @@ class robotV3Datamodule(AnomalibDataModule):
             seed=0,
         )
 
+    @property
+    def name(self) -> str:
+        return self._name
+
     def _setup(self, _stage: str | None = None) -> None:
-        self.train_data = CustomDataset(root=self.root, split="train")
-        self.test_data  = CustomDataset(root=self.root, split="test")
+        self.train_data = ImageDataset(root=self.root, split="train")
+        self.test_data  = ImageDataset(root=self.root, split="test")
+    
 
 
 class SingleImageDataset(Dataset):
@@ -91,4 +86,4 @@ class SingleImageDataset(Dataset):
 
     def __getitem__(self, _: int) -> ImageItem:
         image = TVImage(read_image(self.image_path, as_tensor=True))
-        return ImageItem(image=image, image_path=self.image_path)
+        return ImageItem(image=image, image_path=self.image_path)   

@@ -1,30 +1,26 @@
 import os
-import mlflow
-import mlflow.pytorch
-
 from anomalib.engine import Engine
-from anomalib.models import Fastflow, Padim, EfficientAd, Patchcore
+from anomalib.models import Fastflow, Padim, EfficientAd, Patchcore, Fre
 from anomalib.metrics import AUROC, F1Score
 from anomalib.metrics.evaluator import Evaluator
 from anomalib.loggers import AnomalibMLFlowLogger
 from anomalib.visualization import ImageVisualizer
 
-from dataset import kittingRobotDatamodule
+from dataset import Datamodule
 
 os.environ["MLFLOW_ENABLE_SYSTEM_METRICS_LOGGING"] = "true"
-mlflow.pytorch.autolog(log_models=True, log_every_n_epoch=1, silent=True)
 
-# --- Configuración ---
-MODEL = "padim"  # opciones: "fastflow", "padim", "efficientad", "patchcore"
-MAX_EPOCHS = 50
+# --- Config ---
+MODEL = "efficientad"  # opciones: "fastflow", "padim", "efficientad", "patchcore"
+MAX_EPOCHS = 10
 # ---------------------
 
 
-def build_model(name: str, evaluator: Evaluator, visualizer: ImageVisualizer):
+def build_model(name: str, evaluator: Evaluator):
     if name == "fastflow":
         return Fastflow(backbone="resnet18", evaluator=evaluator)
     if name == "padim":
-        return Padim(backbone="resnet18", layers=["layer1", "layer2", "layer3"], pre_trained=True, evaluator=evaluator, visualizer=visualizer)
+        return Padim(backbone="resnet18", layers=["layer1", "layer2", "layer3"], n_features=200, pre_trained=True, evaluator=evaluator)
     if name == "efficientad":
         return EfficientAd(imagenet_dir="./datasets/imagenette", model_size="small", evaluator=evaluator)
     if name == "patchcore":
@@ -36,11 +32,13 @@ def build_model(name: str, evaluator: Evaluator, visualizer: ImageVisualizer):
             num_neighbors=9,
             evaluator=evaluator,
         )
+    if name == "fre":
+        return Fre(backbone="resnet50")
     raise ValueError(f"Modelo desconocido: {name}")
 
 
 def main() -> None:
-    datamodule = kittingRobotDatamodule(root="./datasets/kittingRobot", train_batch_size=32, eval_batch_size=32)
+    datamodule = Datamodule(root="./datasets/grippy", train_batch_size=1, eval_batch_size=32, name="grippyDatamodule")
 
     evaluator = Evaluator(
         val_metrics=[
@@ -59,22 +57,21 @@ def main() -> None:
 
     mlflow_logger = AnomalibMLFlowLogger(
         experiment_name="Anomaly Detection",
-        run_name=f"{MODEL} real robot",
+        run_name=f"{MODEL} grippy robot v2",
         log_model="all",
         save_dir="./mlruns",
     )
 
-    model = build_model(MODEL, evaluator, visualizer)
+    model = build_model(MODEL, evaluator)
     #model.configure_pre_processor(image_size=(640,480))
 
     engine = Engine(
         accelerator="gpu",
         max_epochs=MAX_EPOCHS,
-        #logger=mlflow_logger,
+        logger=mlflow_logger,
     )
 
-    engine.fit(model=model, datamodule=datamodule)
-    engine.test(model=model, datamodule=datamodule)
+    engine.train(model=model, datamodule=datamodule)
 
 
 if __name__ == "__main__":

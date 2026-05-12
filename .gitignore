@@ -24,9 +24,8 @@ Thumbs.db
 # Claude Code
 .claude/
 
-# MLflow
-mlruns/
-mlflow.db
+mlruns
+*.db
 
 # Modelos entrenados
 *.pth
