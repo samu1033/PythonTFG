@@ -77,6 +77,14 @@ class Datamodule(AnomalibDataModule):
     
 
 
+# Backward-compat aliases for checkpoints saved when these classes had other names.
+robotv3Datamodule = Datamodule
+robotV3Datamodule = Datamodule
+CustomDataModule = Datamodule
+CustomDataset = ImageDataset
+robotv3Dataset = ImageDataset
+
+
 class SingleImageDataset(Dataset):
     def __init__(self, image_path: str | Path):
         self.image_path = str(image_path)
