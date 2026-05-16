@@ -11,7 +11,7 @@ from dataset import Datamodule
 os.environ["MLFLOW_ENABLE_SYSTEM_METRICS_LOGGING"] = "true"
 
 # --- Config ---
-MODEL = "efficientad"  # opciones: "fastflow", "padim", "efficientad", "patchcore"
+MODEL = "padim"  # opciones: "fastflow", "padim", "efficientad", "patchcore"
 MAX_EPOCHS = 10
 # ---------------------
 
@@ -38,7 +38,7 @@ def build_model(name: str, evaluator: Evaluator):
 
 
 def main() -> None:
-    datamodule = Datamodule(root="./datasets/grippy", train_batch_size=1, eval_batch_size=32, name="grippyDatamodule")
+    datamodule = Datamodule(root="./datasets/room", train_batch_size=32, eval_batch_size=32, name="roomTest")
 
     evaluator = Evaluator(
         val_metrics=[
@@ -68,10 +68,10 @@ def main() -> None:
     engine = Engine(
         accelerator="gpu",
         max_epochs=MAX_EPOCHS,
-        logger=mlflow_logger,
+        #logger=mlflow_logger,
     )
 
-    engine.train(model=model, datamodule=datamodule)
+    engine.fit(model=model, datamodule=datamodule)
 
 
 if __name__ == "__main__":

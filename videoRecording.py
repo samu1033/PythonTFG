@@ -4,8 +4,8 @@ import cv2
 from pathlib import Path
 
 # ── Carpetas de salida ────────────────────────────────────────────────────────
-color_dir = Path("datasets/kittingRobot/test/good/rgb")
-depth_dir = Path("datasets/kittingRobot/test/good/depth")
+color_dir = Path("datasets/room/train/good/")
+depth_dir = Path("datasets/room/depth/train/good")
 color_dir.mkdir(parents=True, exist_ok=True)
 depth_dir.mkdir(parents=True, exist_ok=True)
 
@@ -14,7 +14,7 @@ FPS = 15  # La D435 solo admite: 6, 15, 30 o 60 fps
  
 pipeline = rs.pipeline()
 config = rs.config()
-config.enable_stream(rs.stream.color, 1920, 1080, rs.format.bgr8, FPS)
+config.enable_stream(rs.stream.color, 1280, 720, rs.format.bgr8, FPS)
 config.enable_stream(rs.stream.depth, 1280, 720, rs.format.z16, FPS)
 pipeline.start(config)
  
