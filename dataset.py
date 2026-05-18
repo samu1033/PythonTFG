@@ -1,3 +1,9 @@
+"""Custom dataset and datamodule for folder-based anomaly detection.
+
+Wraps a simple directory layout (train/good, test/good, test/anomaly) into
+the anomalib Dataset/DataModule API so any anomalib model can be trained on
+this dataset without changes to the model code.
+"""
 from pathlib import Path
 
 import pandas as pd
@@ -13,6 +19,17 @@ from anomalib.data.utils.split import TestSplitMode, ValSplitMode
 
 
 class ImageDataset(AnomalibDataset):
+    """Dataset for a folder-based anomaly detection layout.
+
+    Expected directory structure:
+        root/
+          train/good/      ← normal images used for training
+          test/good/       ← normal images used for evaluation
+          test/anomaly/    ← anomalous images used for evaluation
+
+    No masks are required since this is image-level classification only.
+    """
+
     def __init__(
         self,
         root: str | Path,
@@ -27,6 +44,13 @@ class ImageDataset(AnomalibDataset):
         self.samples = self._make_samples()
 
     def _make_samples(self) -> pd.DataFrame:
+        """Build a DataFrame with one row per image.
+
+        anomalib's base class expects a DataFrame with at least
+        'image_path', 'split', and 'label_index' columns.
+        mask_path is None because we only do image-level classification,
+        not pixel-level segmentation.
+        """
         samples = []
 
         if self.split == "train":
@@ -42,7 +66,8 @@ class ImageDataset(AnomalibDataset):
         df = pd.DataFrame(samples)
         df.attrs["task"] = self.task_type
         return df
-    
+
+
 class Datamodule(AnomalibDataModule):
     """AnomalibDataModule for the custom robot dataset."""
 
@@ -51,6 +76,7 @@ class Datamodule(AnomalibDataModule):
         root: str | Path = "./datasets/grippy",
         train_batch_size: int = 1,
         eval_batch_size: int = 32,
+        # num_workers=0 avoids issues on Windows
         num_workers: int = 0,
         name: str = "Datamodule",
     ):
@@ -60,8 +86,12 @@ class Datamodule(AnomalibDataModule):
             train_batch_size=train_batch_size,
             eval_batch_size=eval_batch_size,
             num_workers=num_workers,
+            # Mirror val and test splits so validation sees the same images as
+            # the final test, maximising the use of the limited labelled data
             val_split_mode=ValSplitMode.SAME_AS_TEST,
             val_split_ratio=0.5,
+            # FROM_DIR reads the test set directly from test/ subfolders
+            # instead of splitting it off from the training data
             test_split_mode=TestSplitMode.FROM_DIR,
             test_split_ratio=0.2,
             seed=0,
@@ -72,9 +102,10 @@ class Datamodule(AnomalibDataModule):
         return self._name
 
     def _setup(self, _stage: str | None = None) -> None:
+        # _stage is a PyTorch Lightning convention ("fit", "test", etc.);
+        # we ignore it and always build both splits at once.
         self.train_data = ImageDataset(root=self.root, split="train")
         self.test_data  = ImageDataset(root=self.root, split="test")
-    
 
 
 # Backward-compat aliases for checkpoints saved when these classes had other names.
@@ -83,15 +114,3 @@ robotV3Datamodule = Datamodule
 CustomDataModule = Datamodule
 CustomDataset = ImageDataset
 robotv3Dataset = ImageDataset
-
-
-class SingleImageDataset(Dataset):
-    def __init__(self, image_path: str | Path):
-        self.image_path = str(image_path)
-
-    def __len__(self) -> int:
-        return 1
-
-    def __getitem__(self, _: int) -> ImageItem:
-        image = TVImage(read_image(self.image_path, as_tensor=True))
-        return ImageItem(image=image, image_path=self.image_path)   

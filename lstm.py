@@ -7,6 +7,13 @@ from torchmetrics.classification import BinaryAUROC
 
 
 class LSTM(nn.Module):
+    """Binary classifier that reads a sequence of anomaly scores over time.
+
+    A sliding window of past scores feeds the LSTM; the final hidden state
+    is projected to a probability via a sigmoid. This temporal context lets
+    the model distinguish transient noise from a sustained anomaly.
+    """
+
     def __init__(
         self,
         input_size:  int   = 1,
@@ -27,6 +34,7 @@ class LSTM(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         lstm_out, _ = self.lstm(x)
+        # Only the last time-step carries the accumulated sequence context
         last_hidden = lstm_out[:, -1, :]
         return self.sigmoid(self.fc(last_hidden)).squeeze(-1)
 
@@ -39,6 +47,7 @@ class SequenceDataset(Dataset):
     """
 
     def __init__(self, scores: torch.Tensor, labels: torch.Tensor, seq_len: int):
+        # unfold produces non-overlapping windows shifted by 1 each step
         self.X = scores.unfold(0, seq_len, 1).unsqueeze(-1).float()  # (N, T, 1)
         self.y = labels[seq_len - 1:].float()                         # (N,)
 
@@ -50,6 +59,7 @@ class SequenceDataset(Dataset):
 
 
 def build_sequence_dataset(predictions, seq_len: int) -> SequenceDataset:
+    """Flatten batched anomalib predictions into score/label tensors."""
     all_scores = torch.tensor(
         [item.pred_score.item() for batch in predictions for item in batch],
         dtype=torch.float32,
@@ -87,6 +97,7 @@ def train_lstm(
 
     model     = LSTM(input_size=1, hidden_size=hidden_size, num_layers=num_layers, dropout=dropout).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    # BCELoss expects sigmoid output (already applied in forward)
     criterion = nn.BCELoss()
 
     history       = {"train_loss": [], "val_loss": [], "val_auroc": []}
@@ -146,6 +157,7 @@ def train_lstm(
                 step=epoch,
             )
 
+            # Save only when validation loss improves to avoid overfitting
             if val_loss_avg < best_val_loss:
                 best_val_loss = val_loss_avg
                 best_epoch    = epoch + 1

@@ -3,6 +3,15 @@ import os
 from pathlib import Path
 
 def extract_frames_from_video(video_path, output_dir, frame_prefix="frame", target_fps=None):
+    """Extract frames from a video file, optionally subsampling to a lower FPS.
+
+    Args:
+        video_path:   Path to the source video.
+        output_dir:   Destination folder for the extracted PNG frames.
+        frame_prefix: Filename prefix for each saved frame.
+        target_fps:   If given, keep only 1 out of every (source_fps / target_fps)
+                      frames, effectively reducing the frame rate.
+    """
     Path(output_dir).mkdir(parents=True, exist_ok=True)
 
     cap = cv2.VideoCapture(video_path)
@@ -12,6 +21,7 @@ def extract_frames_from_video(video_path, output_dir, frame_prefix="frame", targ
         return
 
     source_fps = cap.get(cv2.CAP_PROP_FPS)
+    # round() avoids drift when source_fps is not an exact multiple of target_fps
     step = round(source_fps / target_fps) if target_fps else 1
     print(f"Source FPS: {source_fps:.2f} | Target FPS: {target_fps or source_fps} | Keeping 1 of every {step} frames")
 

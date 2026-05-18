@@ -13,6 +13,11 @@ from torchmetrics.classification import (
 
 
 def plot_metrics(model_name, scores, pred_labels, gt_labels):
+    """Plot a confusion matrix and scalar metrics side by side.
+
+    `scores` are continuous anomaly probabilities (for AUROC).
+    `pred_labels` are thresholded binary predictions (for the rest).
+    """
     auroc_val     = BinaryAUROC()(scores, gt_labels).item()
     f1_val        = BinaryF1Score()(pred_labels, gt_labels).item()
     precision_val = BinaryPrecision()(pred_labels, gt_labels).item()
@@ -25,6 +30,7 @@ def plot_metrics(model_name, scores, pred_labels, gt_labels):
     fig = plt.figure(figsize=(10, 5))
     fig.suptitle(f"Model: {model_name}", fontsize=14, fontweight="bold", y=1.01)
 
+    # Left panel: confusion matrix heatmap
     ax = fig.add_axes([0.05, 0.05, 0.5, 0.9])
     data = np.array([[tn, fp], [fn, tp]])
     im = ax.imshow(data, cmap="Blues")
@@ -37,12 +43,14 @@ def plot_metrics(model_name, scores, pred_labels, gt_labels):
     ax.set_ylabel("Actual")
     ax.set_title("Confusion Matrix")
 
+    # Overlay cell counts; use white text on dark cells, black on light cells
     for i in range(2):
         for j in range(2):
             ax.text(j, i, data[i, j], ha="center", va="center",
                     color="white" if data[i, j] > data.max() / 2 else "black",
                     fontsize=14, fontweight="bold")
 
+    # Overlay TN/FP/FN/TP labels below each count
     labels_cm = [["TN", "FP"], ["FN", "TP"]]
     for i in range(2):
         for j in range(2):
@@ -52,6 +60,7 @@ def plot_metrics(model_name, scores, pred_labels, gt_labels):
 
     plt.colorbar(im, ax=ax)
 
+    # Right panel: scalar metrics listed vertically
     ax_metrics = fig.add_axes([0.62, 0.15, 0.35, 0.7])
     ax_metrics.axis("off")
     ax_metrics.set_title("Metrics", fontsize=12, fontweight="bold", pad=10)
@@ -70,6 +79,12 @@ def plot_metrics(model_name, scores, pred_labels, gt_labels):
 
 
 def plot_errors(model_name: str, items: list) -> None:
+    """Display misclassified samples grouped by error type.
+
+    False negatives are sorted by ascending score (most confidently missed
+    anomalies first). False positives are sorted by descending score (most
+    confidently wrong normal predictions first).
+    """
     false_negatives = [item for item in items if item.gt_label.item() == 1 and item.pred_label.item() == 0]
     false_positives = [item for item in items if item.gt_label.item() == 0 and item.pred_label.item() == 1]
 
@@ -80,19 +95,21 @@ def plot_errors(model_name: str, items: list) -> None:
     total_normals   = sum(item.gt_label.item() == 0 for item in items)
 
     print(f"Model: {model_name}")
-    print(f"Falsos Negativos : {len(false_negatives)} / {total_anomalies} anomalias reales  (FNR: {len(false_negatives)/total_anomalies:.2%})")
-    print(f"Falsos Positivos : {len(false_positives)} / {total_normals} imagenes normales (FPR: {len(false_positives)/total_normals:.2%})")
+    print(f"False Negatives : {len(false_negatives)} / {total_anomalies} real anomalies  (FNR: {len(false_negatives)/total_anomalies:.2%})")
+    print(f"False Positives : {len(false_positives)} / {total_normals} normal images (FPR: {len(false_positives)/total_normals:.2%})")
 
     def _visualize_group(group, title):
+        """Lay out a group of ImageItems in a 4-column grid."""
         n = len(group)
         if n == 0:
-            print(f"No hay {title}")
+            print(f"No {title}")
             return
         cols = 4
         rows = math.ceil(n / cols)
         fig, axes = plt.subplots(rows, cols, figsize=(cols * 4, rows * 4), squeeze=False)
         axes = axes.flatten()
         for i, item in enumerate(group):
+            # normalize=False keeps the absolute anomaly map scale across items
             vis = visualize_image_item(
                 item,
                 fields=["image", "anomaly_map"],
@@ -101,11 +118,12 @@ def plot_errors(model_name: str, items: list) -> None:
             axes[i].imshow(vis)
             axes[i].set_title(f"Score: {item.pred_score.item():.4f}", fontsize=8)
             axes[i].axis("off")
+        # Hide any unused subplot cells in the last row
         for j in range(i + 1, len(axes)):
             axes[j].axis("off")
         fig.suptitle(f"{model_name} — {title}: {n}", fontsize=14, fontweight="bold")
         plt.tight_layout()
         plt.show()
 
-    _visualize_group(false_negatives, "Falsos Negativos (gt=1, pred=0)")
-    _visualize_group(false_positives, "Falsos Positivos (gt=0, pred=1)")
+    _visualize_group(false_negatives, "False Negatives (gt=1, pred=0)")
+    _visualize_group(false_positives, "False Positives (gt=0, pred=1)")
